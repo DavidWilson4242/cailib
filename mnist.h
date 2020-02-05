@@ -1,5 +1,5 @@
 #ifndef MNIST_H
-#define MINST_H
+#define MNIST_H
 
 #include <stdlib.h>
 #include <inttypes.h>

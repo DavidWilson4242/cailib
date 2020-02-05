@@ -6,6 +6,8 @@
 #include <time.h>
 #include "net.h"
 
+#define NN_FILE_MAGIC 0xDA6E0042
+
 static double sig(double x) {
   return 1.0f/(1.0f + exp(-x));
 }
@@ -31,8 +33,8 @@ void net_print(NeuralNetwork_T *network) {
       for (size_t j = 0; j < layer->neuron_count; j++) {
         Neuron_T *neuron = &layer->neurons[j];
         printf("    \t[");
-        for (size_t k = 0; k < neuron->axon_out_count; k++) {
-          printf("%.2f ", neuron->axons_out[k].weight); 
+        for (size_t k = 0; k < neuron->axon_count; k++) {
+          printf("%.2f ", neuron->axons[k].weight); 
         }
         printf("]\n");
       }
@@ -42,6 +44,7 @@ void net_print(NeuralNetwork_T *network) {
 
 NeuralNetwork_T *net_make(size_t inputs, size_t outputs, 
     size_t *hiddens, size_t hidden_count) {
+
   srand(time(NULL));
 
   NeuralNetwork_T *network = malloc(sizeof(NeuralNetwork_T));
@@ -57,7 +60,7 @@ NeuralNetwork_T *net_make(size_t inputs, size_t outputs,
   network->hiddens = malloc(sizeof(size_t)*hidden_count);
   assert(network->hiddens);
   for (size_t i = 0; i < hidden_count; i++) {
-    network->hiddens[i] = hiddens[i] + 1;
+    network->hiddens[i] = hiddens[i];
   }
 
   /* network stores an array of the number of neurons in each layer */
@@ -90,15 +93,15 @@ NeuralNetwork_T *net_make(size_t inputs, size_t outputs,
     for (size_t j = 0; j < network->layer_counts[i]; j++) {
       Neuron_T *this_neuron = &network->layers[i].neurons[j];
       NetworkLayer_T *next_layer = &network->layers[i + 1];
-      this_neuron->axons_out = malloc(sizeof(Axon_T)*next_layer->neuron_count);
-      assert(this_neuron->axons_out);
+      this_neuron->axons = malloc(sizeof(Axon_T)*next_layer->neuron_count);
+      assert(this_neuron->axons);
       next_layer_count = (i >= 0 && i < network->layer_count - 2) ? next_layer->neuron_count - 1 
                                                                   : next_layer->neuron_count;
-      this_neuron->axon_out_count = next_layer_count; 
+      this_neuron->axon_count = next_layer_count; 
       for (size_t k = 0; k < next_layer_count; k++) {
-        this_neuron->axons_out[k].weight = ((double)rand()/RAND_MAX - 0.50)*2.0;
-        this_neuron->axons_out[k].from = this_neuron;
-        this_neuron->axons_out[k].to = &next_layer->neurons[k];
+        this_neuron->axons[k].weight = ((double)rand()/RAND_MAX - 0.50)*2.0;
+        this_neuron->axons[k].from = this_neuron;
+        this_neuron->axons[k].to = &next_layer->neurons[k];
       }
     }
   }
@@ -113,8 +116,8 @@ NeuralNetwork_T *net_copy(NeuralNetwork_T *network) {
     for (size_t j = 0; j < copy->layers[j].neuron_count; j++) {
       Neuron_T *neuron = &copy->layers[i].neurons[j];
       Neuron_T *template = &network->layers[i].neurons[j];
-      for (size_t k = 0; k < neuron->axon_out_count; k++) {
-        neuron->axons_out[k].weight = template->axons_out[k].weight;
+      for (size_t k = 0; k < neuron->axon_count; k++) {
+        neuron->axons[k].weight = template->axons[k].weight;
       }
     }
   }
@@ -130,7 +133,7 @@ void net_free(NeuralNetwork_T **networkp) {
   for (size_t i = 0; i < network->layer_count; i++) {
     NetworkLayer_T *layer = &network->layers[i];
     for (size_t j = 0; j < layer->neuron_count; j++) {
-      free(layer->neurons[j].axons_out);
+      free(layer->neurons[j].axons);
     }
     free(layer->neurons);
   }
@@ -160,8 +163,8 @@ void net_backprop(NeuralNetwork_T *network, double *expected) {
     for (size_t j = 0; j < layer->neuron_count; j++) {
       Neuron_T *neuron = &layer->neurons[j];
       double my_err = 0.0f;
-      for (size_t k = 0; k < neuron->axon_out_count; k++) {
-        Axon_T *axon = &neuron->axons_out[k];
+      for (size_t k = 0; k < neuron->axon_count; k++) {
+        Axon_T *axon = &neuron->axons[k];
         my_err += axon->weight*axon->to->err; 
       }
       neuron->err = my_err;
@@ -169,7 +172,7 @@ void net_backprop(NeuralNetwork_T *network, double *expected) {
   }
 
   /* now correct the weights */
-  double LEARNING_RATE = 0.030;
+  double LEARNING_RATE = 0.10;
   for (size_t i = 1; i < network->layer_count; i++) {
     NetworkLayer_T *at_layer = &network->layers[i];
     NetworkLayer_T *prev_layer = &network->layers[i - 1];
@@ -177,7 +180,7 @@ void net_backprop(NeuralNetwork_T *network, double *expected) {
       Neuron_T *neuron = &at_layer->neurons[j];
       for (size_t k = 0; k < prev_layer->neuron_count; k++) {
         Neuron_T *neuron_from = &prev_layer->neurons[k];
-        Axon_T *axon = &neuron_from->axons_out[j];
+        Axon_T *axon = &neuron_from->axons[j];
         axon->weight += get_correction(LEARNING_RATE, neuron->err,
                                        neuron->value, neuron_from->value);
       }
@@ -191,6 +194,10 @@ double *net_feed_forward(NeuralNetwork_T *network, double *inputs) {
   /* load the inputs into the first layer */
   for (size_t i = 0; i < network->inputs; i++) {
     network->layers[0].neurons[i].value = inputs[i];
+    /*
+    printf("%c ", inputs[i] > 0.30 ? 'X' : ' ');
+    if (i % 28 == 0) printf("\n");
+    */
   }
 
   double *outputs = malloc(sizeof(double)*network->outputs);
@@ -205,7 +212,7 @@ double *net_feed_forward(NeuralNetwork_T *network, double *inputs) {
       double weighted_sum = 0.0f;
       for (size_t k = 0; k < prev_layer->neuron_count; k++) {
         Neuron_T *prev_neuron = &prev_layer->neurons[k];
-        weighted_sum += prev_neuron->value*prev_neuron->axons_out[j].weight;
+        weighted_sum += prev_neuron->value*prev_neuron->axons[j].weight;
       }
       this_neuron->value = sig(weighted_sum);
     }
@@ -229,8 +236,9 @@ double net_err(NeuralNetwork_T *network) {
 }
 
 void net_train(NeuralNetwork_T *network, double **inputs, double **labels, 
-               size_t N, size_t epoch) {
+               size_t N, size_t epoch, const char *outfile) {
   double *input_data = malloc(sizeof(double) * network->inputs);
+  FILE *outf = NULL;
 
   for (size_t i = 0; i < epoch; i++) {
     double mean_err = 0.0f;
@@ -245,6 +253,87 @@ void net_train(NeuralNetwork_T *network, double **inputs, double **labels,
     }
     mean_err /= (double)N;
     printf("epoch %zu/%zu complete. avg error %.4f\n", i, epoch, mean_err);
+    if (outfile) {
+      outf = fopen(outfile, "wb");
+      if (!outf) {
+        continue;
+      }
+      net_write(network, outf);
+      printf("wrote network to file %s\n", outfile);
+      fclose(outf);
+    }
   }
+
+}
+
+void net_write(NeuralNetwork_T *network, FILE *outfile) {
+ 
+  if (!outfile) {
+    return;
+  }
+  
+  /* write magic number to file */
+  uint32_t magic = NN_FILE_MAGIC;
+  fwrite(&magic, sizeof(uint32_t), 1, outfile);
+
+  /* write topology to file */
+  fwrite(&network->layer_count, sizeof(size_t), 1, outfile);
+  fwrite(network->layer_counts, sizeof(size_t), network->layer_count, outfile);
+
+  /* write each neuron value, followed by outgoing weights */
+  for (size_t i = 0; i < network->layer_count; i++) {
+    NetworkLayer_T *layer = &network->layers[i];
+    for (size_t j = 0; j < layer->neuron_count; j++) {
+      Neuron_T *neuron = &layer->neurons[j];
+      fwrite(&neuron->value, sizeof(double), 1, outfile);
+      for (size_t k = 0; k < neuron->axon_count; k++) {
+        fwrite(&neuron->axons[k].weight, sizeof(double), 1, outfile);
+      }
+    }
+  }
+  
+}
+
+NeuralNetwork_T *net_from_file(FILE *infile) {
+  
+  if (!infile) {
+    return NULL;
+  }
+
+  uint32_t magic;
+  size_t topology_count;
+  size_t *topology;
+  NeuralNetwork_T *network;
+
+  fread(&magic, sizeof(uint32_t), 1, infile);
+  printf("%x\n", magic);
+  if (magic != NN_FILE_MAGIC) {
+    return NULL;
+  }
+
+  fread(&topology_count, sizeof(size_t), 1, infile);
+  topology = malloc(sizeof(size_t)*topology_count);
+  if (!topology) {
+    return NULL;
+  }
+
+  fread(topology, sizeof(size_t), topology_count, infile);
+  
+  network = net_make(topology[0], topology[topology_count - 1],
+                     &topology[1], topology_count - 2);
+  
+  for (size_t i = 0; i < topology_count; i++) {
+    NetworkLayer_T *layer = &network->layers[i];
+    for (size_t j = 0; j < layer->neuron_count; j++) {
+      Neuron_T *neuron = &layer->neurons[j];
+      fread(&neuron->value, sizeof(double), 1, infile);
+      for (size_t k = 0; k < neuron->axon_count; k++) {
+        fread(&neuron->axons[k].weight, sizeof(double), 1, infile);
+      }
+    }
+  }
+
+  return network;
+
 
 }

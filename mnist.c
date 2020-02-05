@@ -7,7 +7,7 @@
 #define MNIST_SUCCESS 0
 #define MNIST_ERROR 1
 
-static void bitswap_32(uint32_t *n) { 
+static void bitswap_32(uint32_t *n){ 
   uint8_t *p = (uint8_t *)n;
   uint8_t t0 = p[0], t1 = p[1];
   p[0] = p[3];
@@ -42,6 +42,7 @@ static int read_label_file(FILE *labelf, MNISTSet_T *mnist) {
 
 }
 
+/* returns MNIST_ERROR for error, MNIST_SUCCESS for success */
 static int read_image_file(FILE *labelf, MNISTSet_T *mnist) {
   
   uint32_t magic;
@@ -75,6 +76,8 @@ static int read_image_file(FILE *labelf, MNISTSet_T *mnist) {
       }
     }
   }
+
+  return MNIST_SUCCESS;
    
 }
 
@@ -145,7 +148,6 @@ MNISTTrainSet_T *mnist_make_train_set(const char *image_file, const char *label_
     assert(train->label_set[i]);
     train->label_set[i][set->labels[i]] = 1.0f;
   }
-
 
   return train;
 

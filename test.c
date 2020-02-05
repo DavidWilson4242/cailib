@@ -24,47 +24,49 @@ int makeguess(double *arr, size_t n) {
   return guess;
 } 
 
-void test(NeuralNetwork_T *network, MNISTTrainSet_T *set) {
-  double *out = net_feed_forward(network, set->train_set[0]);
-  int guess = makeguess(out, 10);
+void test(NeuralNetwork_T *network, MNISTTrainSet_T *set, uint64_t label) {
+
+  double *out;
+  int guess;
+
+  if (label < set->count) {
+    return;
+  }
+
+  out = net_feed_forward(network, set->train_set[label]);
+  guess = makeguess(out, 10);
   printf("output:   "); printarr(out, 10);
-  printf("expected: "); printarr(set->label_set[0], 10);
+  printf("expected: "); printarr(set->label_set[label], 10);
   printf("The inputted label is %d.  The network predicts this digit is %d with %.2f%% certainty.\n",
-         set->set->labels[0],
+         set->set->labels[label],
          guess,
          out[guess] * 100);
 }
 
 int main(int argc, char *argv[]) {
   
-  size_t hiddens[] = {32, 32};
-  NeuralNetwork_T *network = net_make(28*28, 10, hiddens, sizeof(hiddens)/sizeof(size_t));
-  MNISTTrainSet_T *train = mnist_make_train_set("mnist_images.dat", "mnist_labels.dat");
+  FILE* model = fopen("network.nn", "rb");
+  MNISTTrainSet_T *mnist = mnist_make_train_set("mnist_images.dat", "mnist_labels.dat");
+  MNISTTrainSet_T *mnist_test = mnist_make_train_set("mnist_test_images.dat", "mnist_test_labels.dat");
+  printf("mnist sets loaded.  training network...\n");
 
-  printf("MNIST set read.  beginning NN training\n");
-
-  net_train(network, train->train_set, train->label_set, 60000, 10);
-  test(network, train);
-
-  /*
-  double t0[] = {0.8, 0.8, 0.8};
-  double t1[] = {0.9, 0.9, 0.9};
-  double t2[] = {1.0, 1.0, 1.0};
-  double *train_set[] = {t0, t1, t2};
-
-  double l0[] = {0.8, 0.8, 0.8, 0.8};
-  double l1[] = {0.9, 0.9, 0.9, 0.9};
-  double l2[] = {1.0, 1.0, 1.0, 1.0};
-  double *label_set[] = {l0, l1, l2};
-
-  size_t dataset_size = 3;
-
-  net_train(network, train_set, label_set, dataset_size, 6000);
-  net_feed_forward(network, t2);
-  net_print(network);
-  */
+  NeuralNetwork_T *network = net_from_file(model);
+  fclose(model);
   
+  net_train(network, mnist->train_set, mnist->label_set, 5000, 100, "network.nn");
+
+  printf("training complete\n");
+
+  int label;
+  while (1) {
+    scanf("%d", &label);
+    test(network, mnist_test, label);
+  }
+
+
+
   return 0;
 
 }
+
 
