@@ -49,7 +49,6 @@ int main(int argc, char *argv[]) {
   network = net_from_file(model);
   
   model = fopen("cifar.nn", "wb");
-  cifar->count = 100;
   cifar->epoch = 10;
   net_train(network, cifar, model);
 
