@@ -27,11 +27,31 @@ int makeguess(double *arr, size_t n) {
 
 void test(NeuralNetwork_T *network, NetworkTrainingSet_T *set, uint64_t label) {
 
+  double *output = net_feed_forward(network, set->input_set[label]);
+  printf("output:   ");
+  printarr(output, 10);
+  printf("expected: ");
+  printarr(set->label_set[label], 10);
+  printf("\n");
+
 }
 
 int main(int argc, char *argv[]) {
   
   NetworkTrainingSet_T *cifar = cifar_make_training_set("cifar/data_batch_1.bin");
+  NeuralNetwork_T *network;
+  size_t h[] = {800};
+  FILE *model;
+
+  printf("finished reading CIFAR10\n");
+  
+  model = fopen("cifar.nn", "rb");
+  network = net_from_file(model);
+  
+  model = fopen("cifar.nn", "wb");
+  cifar->count = 100;
+  cifar->epoch = 10;
+  net_train(network, cifar, model);
 
   /*
   FILE* model;
@@ -59,13 +79,11 @@ int main(int argc, char *argv[]) {
   net_free(&network);
   */
 
-  /*
   int label;
   while (1) {
     scanf("%d", &label);
-    test(network, mnist_test, label);
+    test(network, cifar, label);
   }
-  */
 
   return 0;
 

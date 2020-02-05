@@ -52,14 +52,12 @@ NetworkTrainingSet_T *cifar_make_training_set(const char *batchname) {
   cifar->images = malloc(CIFAR10_IMAGES_PER_BATCH * sizeof(CIFARImage_T));
   assert(cifar->images);
 
-  uint8_t label;
-
   for (size_t i = 0; i < CIFAR10_IMAGES_PER_BATCH; i++) {
     CIFARImage_T *image = &cifar->images[i];
     image->pixels = malloc(CIFAR10_PIX_PER_IMAGE * sizeof(CIFARPixel_T));
     assert(image->pixels);
     image->pixel_count = CIFAR10_PIX_PER_IMAGE;
-    fread(&label, sizeof(uint8_t), 1, batch);
+    fread(&image->label, sizeof(uint8_t), 1, batch);
     for (size_t j = 0; j < CIFAR10_PIX_PER_IMAGE; j++) {
       fread(&image->pixels[j].r, sizeof(uint8_t), 1, batch);
     }

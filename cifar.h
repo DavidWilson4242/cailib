@@ -1,6 +1,7 @@
 #ifndef CIFAR_H
 #define CIFAR_H
 
+#include <inttypes.h>
 #include "net.h"
 
 typedef struct CIFARPixel {
