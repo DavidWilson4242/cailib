@@ -42,6 +42,8 @@ typedef struct NetworkTrainingSet {
   size_t epoch;
   size_t count;
   size_t datacount;
+  size_t inputdim;
+  size_t outputdim;
   double **input_set;
   double **label_set;
 } NetworkTrainingSet_T;

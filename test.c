@@ -3,6 +3,7 @@
 #include <assert.h>
 #include "net.h"
 #include "mnist.h"
+#include "cifar.h"
 
 void printarr(double *arr, size_t n) {
   printf("[");
@@ -30,6 +31,9 @@ void test(NeuralNetwork_T *network, NetworkTrainingSet_T *set, uint64_t label) {
 
 int main(int argc, char *argv[]) {
   
+  NetworkTrainingSet_T *cifar = cifar_make_training_set("cifar/data_batch_1.bin");
+
+  /*
   FILE* model;
   NeuralNetwork_T *network;
   size_t h[] ={300};
@@ -53,6 +57,7 @@ int main(int argc, char *argv[]) {
   mnist_free(&mnist);
   mnist_free(&mnist_test);
   net_free(&network);
+  */
 
   /*
   int label;
