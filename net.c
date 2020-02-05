@@ -4,6 +4,7 @@
 #include <string.h>
 #include <math.h>
 #include <time.h>
+#include <inttypes.h>
 #include "net.h"
 
 #define NN_FILE_MAGIC 0xDA6E0042
@@ -235,32 +236,30 @@ double net_err(NeuralNetwork_T *network) {
   return sum_err;
 }
 
-void net_train(NeuralNetwork_T *network, double **inputs, double **labels, 
-               size_t N, size_t epoch, const char *outfile) {
-  double *input_data = malloc(sizeof(double) * network->inputs);
-  FILE *outf = NULL;
+void net_train(NeuralNetwork_T *network, NetworkTrainingSet_T *dataset, FILE *outfile) {
 
-  for (size_t i = 0; i < epoch; i++) {
+  assert(dataset && dataset->count <= dataset->datacount);
+
+  for (size_t i = 0; i < dataset->epoch; i++) {
     double mean_err = 0.0f;
-    for (size_t j = 0; j < N; j++) {
-      double *train_set = inputs[j];
-      double *label_set = labels[j];
+    for (size_t j = 0; j < dataset->count; j++) {
+      double *train_set = dataset->input_set[j];
+      double *label_set = dataset->label_set[j];
       double *output = net_feed_forward(network, train_set);
       double err;
       net_backprop(network, label_set);
       mean_err += net_err(network);
       free(output);
     }
-    mean_err /= (double)N;
-    printf("epoch %zu/%zu complete. avg error %.4f\n", i, epoch, mean_err);
+    mean_err /= (double)dataset->count;
+    printf("epoch %zu/%zu complete. avg error %.4f\n", i + 1, dataset->epoch, mean_err);
     if (outfile) {
-      outf = fopen(outfile, "wb");
-      if (!outf) {
+      if (!freopen(NULL, "wb", outfile)) {
         continue;
       }
-      net_write(network, outf);
-      printf("wrote network to file %s\n", outfile);
-      fclose(outf);
+      net_write(network, outfile);
+      fflush(outfile);
+      printf("wrote network to file.\n");
     }
   }
 
@@ -306,7 +305,6 @@ NeuralNetwork_T *net_from_file(FILE *infile) {
   NeuralNetwork_T *network;
 
   fread(&magic, sizeof(uint32_t), 1, infile);
-  printf("%x\n", magic);
   if (magic != NN_FILE_MAGIC) {
     return NULL;
   }
@@ -332,6 +330,8 @@ NeuralNetwork_T *net_from_file(FILE *infile) {
       }
     }
   }
+
+  free(topology);
 
   return network;
 

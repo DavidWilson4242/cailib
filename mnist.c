@@ -92,7 +92,7 @@ void mnist_print_image(MNISTImage_T *image) {
   }
 }
 
-MNISTSet_T *mnist_read(const char *image_file, const char *label_file) {
+static MNISTSet_T *mnist_read(const char *image_file, const char *label_file) {
   
   FILE *image_handle;
   FILE *label_handle;
@@ -130,25 +130,52 @@ MNISTSet_T *mnist_read(const char *image_file, const char *label_file) {
 
 }
 
-MNISTTrainSet_T *mnist_make_train_set(const char *image_file, const char *label_file) {
+NetworkTrainingSet_T *mnist_make_train_set(const char *image_file, const char *label_file) {
   
   MNISTSet_T *set = mnist_read("mnist_images.dat", "mnist_labels.dat");
-  MNISTTrainSet_T *train = malloc(sizeof(MNISTTrainSet_T));
+  NetworkTrainingSet_T *train = malloc(sizeof(NetworkTrainingSet_T));
   assert(train);
   
-  train->set = set;
   train->count = set->count;
+  train->datacount = set->count;
 
-  train->train_set = malloc(sizeof(double *)*set->count);
+  train->input_set = malloc(sizeof(double *)*set->count);
   train->label_set = malloc(sizeof(double *)*set->count);
-  assert(train->train_set);
+  assert(train->input_set && train->label_set);
+
   for (size_t i = 0; i < set->count; i++) {
-    train->train_set[i] = set->images[i].pixels;
+    train->input_set[i] = set->images[i].pixels;
     train->label_set[i] = calloc(sizeof(double), 10);
     assert(train->label_set[i]);
     train->label_set[i][set->labels[i]] = 1.0f;
   }
 
+  /* mnist set struct is no longer needed... we got it into the format
+   * that the network requires */
+  free(set->labels);
+  free(set->images);
+  free(set);
+
   return train;
+
+}
+
+void mnist_free(NetworkTrainingSet_T **set) {
+  
+  assert(set && *set);
+  
+  NetworkTrainingSet_T *train = *set;
+  
+  /* free train&label set.  train set just references which was already
+   * freed, so just free the array */
+  for (size_t i = 0; i < train->datacount; i++) {
+    free(train->input_set[i]);
+    free(train->label_set[i]);
+  }
+  free(train->input_set);
+  free(train->label_set);
+  free(train);
+
+  *set = NULL;
 
 }

@@ -3,6 +3,7 @@
 
 #include <stdlib.h>
 #include <inttypes.h>
+#include "net.h"
 
 typedef struct MNISTImage {
   size_t cols;
@@ -16,15 +17,8 @@ typedef struct MNISTSet {
   MNISTImage_T *images;
 } MNISTSet_T;
 
-typedef struct MNISTTrainSet {
-  MNISTSet_T *set;
-  double **train_set;
-  double **label_set;
-  size_t count;
-} MNISTTrainSet_T;
-
-MNISTSet_T *mnist_read(const char *, const char *);
-MNISTTrainSet_T *mnist_make_train_set(const char *, const char *);
+NetworkTrainingSet_T *mnist_make_train_set(const char *, const char *);
+void mnist_free(NetworkTrainingSet_T **);
 void mnist_print_image(MNISTImage_T *);
 
 #endif

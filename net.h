@@ -38,6 +38,14 @@ typedef struct NeuralNetwork {
     NetworkLayer_T *output_layer;
 } NeuralNetwork_T;
 
+typedef struct NetworkTrainingSet {
+  size_t epoch;
+  size_t count;
+  size_t datacount;
+  double **input_set;
+  double **label_set;
+} NetworkTrainingSet_T;
+
 NeuralNetwork_T *net_make(size_t inputs, size_t outputs, 
                           size_t *hiddens, size_t hidden_count);
 NeuralNetwork_T *net_copy(NeuralNetwork_T *);
@@ -45,9 +53,9 @@ void net_free(NeuralNetwork_T **);
 void net_backprop(NeuralNetwork_T *, double *);
 double *net_feed_forward(NeuralNetwork_T *, double *);
 double net_err(NeuralNetwork_T *);
-void net_train(NeuralNetwork_T *, double **, double **, size_t, size_t, const char *);
 void net_print(NeuralNetwork_T *);
 void net_write(NeuralNetwork_T *, FILE *);
+void net_train(NeuralNetwork_T *, NetworkTrainingSet_T *, FILE *);
 NeuralNetwork_T *net_from_file(FILE *);
 
 #endif
