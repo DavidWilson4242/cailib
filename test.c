@@ -40,15 +40,16 @@ int main(int argc, char *argv[]) {
   
   NetworkTrainingSet_T *cifar = cifar_make_training_set("cifar/data_batch_1.bin");
   NeuralNetwork_T *network;
-  size_t h[] = {800};
   FILE *model;
+    
+  model = fopen("cifar.nn", "rb");
+  network = net_from_file(model);
+  fclose(model);
 
   printf("finished reading CIFAR10\n");
   
-  model = fopen("cifar.nn", "rb");
-  network = net_from_file(model);
-  
   model = fopen("cifar.nn", "wb");
+  cifar->count = 1000;
   cifar->epoch = 10;
   net_train(network, cifar, model);
 

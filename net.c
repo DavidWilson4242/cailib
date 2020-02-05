@@ -250,7 +250,7 @@ void net_train(NeuralNetwork_T *network, NetworkTrainingSet_T *dataset, FILE *ou
       net_backprop(network, label_set);
       mean_err += net_err(network);
       free(output);
-      if (j % 1000 == 0) {
+      if (j % 100 == 0) {
         printf("..%zu/%zu\n", j, dataset->count);
       }
     }
